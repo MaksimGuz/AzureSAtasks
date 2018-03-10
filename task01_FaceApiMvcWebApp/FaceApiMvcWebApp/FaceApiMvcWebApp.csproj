@@ -189,7 +189,6 @@
     <Content Include="Metadata\deploymentTemplates\apiappconfig.azureresource.json" />
     <Content Include="apiapp.json" />
     <None Include="Properties\PublishProfiles\faceapi-mvc - Web Deploy.pubxml" />
-    <None Include="Properties\PublishProfiles\FaceApiMvcWebApp20180310014923.pubxml" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\jquery-1.10.2.js" />
     <Content Include="Scripts\jquery-1.10.2.min.js" />
