@@ -3,6 +3,7 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -12,6 +13,23 @@ namespace FaceApiMvcWebApp.Services
 {
     public class ImageService
     {
+        private CloudBlobContainer cloudBlobContainer;
+        public void CloudInit()
+        {
+            CloudStorageAccount cloudStorageAccount = ConnectionString.GetConnectionString();
+            CloudBlobClient cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
+            cloudBlobContainer = cloudBlobClient.GetContainerReference(ConnectionString.GetCloudStorageBlobContainerName());
+
+            if (cloudBlobContainer.CreateIfNotExists())
+            {
+                cloudBlobContainer.SetPermissions(
+                    new BlobContainerPermissions
+                    {
+                        PublicAccess = BlobContainerPublicAccessType.Blob
+                    }
+                    );
+            }
+        }
         public async Task<string> UploadImageAsync(HttpPostedFileBase imageToUpload)
         {
             string imageFullPath = null;
@@ -21,21 +39,7 @@ namespace FaceApiMvcWebApp.Services
             }
             try
             {
-                CloudStorageAccount cloudStorageAccount = ConnectionString.GetConnectionString();
-                CloudBlobClient cloudBlobClient = cloudStorageAccount.CreateCloudBlobClient();
-                CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference(ConnectionString.GetCloudStorageBlobContainerName());
-
-                if (await cloudBlobContainer.CreateIfNotExistsAsync())
-                {
-                    await cloudBlobContainer.SetPermissionsAsync(
-                        new BlobContainerPermissions
-                        {
-                            PublicAccess = BlobContainerPublicAccessType.Blob
-                        }
-                        );
-                }
-                string imageName = Guid.NewGuid().ToString() + "-" + Path.GetExtension(imageToUpload.FileName);
-
+                string imageName = Guid.NewGuid().ToString();
                 CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(imageName);
                 cloudBlockBlob.Properties.ContentType = imageToUpload.ContentType;
                 await cloudBlockBlob.UploadFromStreamAsync(imageToUpload.InputStream);
@@ -44,7 +48,7 @@ namespace FaceApiMvcWebApp.Services
             }
             catch (Exception ex)
             {
-
+                Debug.WriteLine(ex.Message);
             }
             return imageFullPath;
         }

@@ -39,42 +39,27 @@ namespace FaceApiMvcWebApp.Controllers
         [HttpPost]
         public async Task<ActionResult> UploadFiles(HttpPostedFileBase[] files)
         {
-
             //Ensure model state is valid  
             if (ModelState.IsValid)
-            {   //iterating through multiple file collection   
-                foreach (HttpPostedFileBase file in files)
-                //Parallel.ForEach(files, (file) =>
+            {
+                var start = DateTime.Now;
+                var imageUrl = string.Empty;
+                imageService.CloudInit();
+                //iterating through multiple file collection   
+                foreach (HttpPostedFileBase file in files)                
                 {
                     //Checking file is available to save.  
                     if (file != null)
-                    {
-                        /*
-                        var InputFileName = Path.GetFileName(file.FileName);
-                        var ServerSavePath = Path.Combine(Server.MapPath("~/UploadedFiles/") + InputFileName);
-                        //Save file to server folder  
-                        file.SaveAs(ServerSavePath);
-                        //assigning file uploaded status to ViewBag for showing message to user.  
-                        ViewBag.UploadStatus = files.Count().ToString() + " files uploaded successfully.";
-                        */
-                        var imageUrl = await imageService.UploadImageAsync(file);
-                        TempData["LatestImage"] = imageUrl.ToString();
-                    }
-                };//);
-            }
-            //return RedirectToAction("LatestImage");
+                        imageUrl = await imageService.UploadImageAsync(file);                        
+                };
+                TempData["LatestImage"] = imageUrl;                
+                TempData["Duration"] = DateTime.Now.Subtract(start).Milliseconds;
+            }            
             return await Task.Run<ActionResult>(() =>
             {
                 return RedirectToAction("LatestImage");
             });
         }
-
-
-        /*
-var imageUrl= await imageService.UploadImageAsync(photo);  
-            TempData["LatestImage"] = imageUrl.ToString();  
-            return RedirectToAction("LatestImage");         
-        */
 
         public ActionResult LatestImage()
         {
@@ -82,6 +67,8 @@ var imageUrl= await imageService.UploadImageAsync(photo);
             if (TempData["LatestImage"] != null)
             {
                 ViewBag.LatestImage = Convert.ToString(TempData["LatestImage"]);
+                if (TempData["Duration"] != null)
+                    ViewBag.Duration = Convert.ToInt32(TempData["Duration"]);
             }
 
             return View();
