@@ -1,8 +1,12 @@
-﻿using FaceApiMvcWebApp.Services;
+﻿using FaceApiMvcWebApp.Infrastructure;
+using FaceApiMvcWebApp.Services;
+using Microsoft.ServiceBus.Messaging;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
@@ -12,6 +16,8 @@ namespace FaceApiMvcWebApp.Controllers
     public class HomeController : Controller
     {
         ImageService imageService = new ImageService();
+        string ServiceBusConnectionString = ConnectionString.GetCloudServiceBusConnectionString();
+        string QueueName = ConnectionString.GetCloudServiceBusQueueName();
 
         public ActionResult Index()
         {
@@ -43,16 +49,34 @@ namespace FaceApiMvcWebApp.Controllers
             if (ModelState.IsValid)
             {
                 var start = DateTime.Now;
-                var imageUrl = string.Empty;
-                imageService.CloudInit();
+                var imageName = string.Empty;
+                imageService.CloudInit();                
+                // Create MessagingFactory object
+                var messagingFactory = MessagingFactory.CreateFromConnectionString(ServiceBusConnectionString);
+                // Create MessageSender object
+                var messageSender = await messagingFactory.CreateMessageSenderAsync(QueueName);
                 //iterating through multiple file collection   
                 foreach (HttpPostedFileBase file in files)                
                 {
                     //Checking file is available to save.  
                     if (file != null)
-                        imageUrl = await imageService.UploadImageAsync(file);                        
-                };
-                TempData["LatestImage"] = imageUrl;                
+                    {
+                        imageName = await imageService.UploadImageAsync(file);
+                        // Create message payload
+                        var faceServiceBusMessage = new FaceServiceBusMessage
+                        {
+                            DeviceId = "0x1111",
+                            BlobName = imageName
+                        };
+                        // Create BrokeredMessage object
+                        using (var brokeredMessage = new BrokeredMessage(faceServiceBusMessage, new DataContractSerializer(typeof(FaceServiceBusMessage))))
+                        {
+                            //Send message
+                            messageSender.SendAsync(brokeredMessage).Wait();
+                        }
+                    }
+                };                
+                TempData["LatestImage"] = imageName;
                 TempData["Duration"] = DateTime.Now.Subtract(start).Milliseconds;
             }            
             return await Task.Run<ActionResult>(() =>
@@ -73,5 +97,15 @@ namespace FaceApiMvcWebApp.Controllers
 
             return View();
         }
+    }
+
+    [DataContract]
+    public class FaceServiceBusMessage
+    {
+        [DataMember]
+        public string DeviceId { get; set; }
+
+        [DataMember]
+        public string BlobName { get; set; }
     }
 }

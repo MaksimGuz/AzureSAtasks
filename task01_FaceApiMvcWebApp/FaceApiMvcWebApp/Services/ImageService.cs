@@ -32,25 +32,22 @@ namespace FaceApiMvcWebApp.Services
         }
         public async Task<string> UploadImageAsync(HttpPostedFileBase imageToUpload)
         {
-            string imageFullPath = null;
+            string imageName = Guid.NewGuid().ToString();
             if (imageToUpload == null || imageToUpload.ContentLength == 0)
             {
                 return null;
             }
             try
-            {
-                string imageName = Guid.NewGuid().ToString();
+            {                
                 CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(imageName);
                 cloudBlockBlob.Properties.ContentType = imageToUpload.ContentType;
-                await cloudBlockBlob.UploadFromStreamAsync(imageToUpload.InputStream);
-
-                imageFullPath = cloudBlockBlob.Uri.ToString();
+                await cloudBlockBlob.UploadFromStreamAsync(imageToUpload.InputStream);                
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
             }
-            return imageFullPath;
+            return imageName;
         }
     }
 }

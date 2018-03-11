@@ -17,5 +17,13 @@ namespace FaceApiMvcWebApp.Infrastructure
         {
             return contianer;
         }
+        public static string GetCloudServiceBusConnectionString()
+        {
+            return CloudConfigurationManager.GetSetting("ServiceBusConnectionString");
+        }
+        public static string GetCloudServiceBusQueueName()
+        {
+            return CloudConfigurationManager.GetSetting("ServiceBusQueueName");
+        }
     }
 }
